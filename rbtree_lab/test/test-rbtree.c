@@ -64,7 +64,6 @@ void test_erase_root(const key_t key)
   assert(p != NULL);
   assert(t->root == p);
   assert(p->key == key);
-
   rbtree_erase(t, p);
 #ifdef SENTINEL
   assert(t->root == t->nil);
@@ -414,13 +413,20 @@ void test_find_erase_rand(const size_t n, const unsigned int seed)
 
 int main(void)
 {
+  printf("init\n");
   test_init();
+  printf("init successfully complete!\n");
   test_insert_single(1024);
+  printf("insert-single successfully complete!\n");
   test_find_single(512, 1024);
+  printf("find-single successfully complete!\n");
   test_erase_root(128);
+  printf("erase-root successfully complete!\n");
   test_find_erase_fixed();
+  printf("find-erase successfully complete!\n");
   test_minmax_suite();
   test_to_array_suite();
+
   test_distinct_values();
   test_duplicate_values();
   test_multi_instance();
