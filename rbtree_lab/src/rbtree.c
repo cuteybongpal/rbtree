@@ -12,12 +12,19 @@ rbtree *new_rbtree(void) {
     // TODO: initialize struct if needed
     return p;
 }
-
+void delete_rbtree_nodes(node_t* node)
+{
+    if (node == NULL)
+        return;
+    delete_rbtree_nodes(node->left);
+    delete_rbtree_nodes(node->right);
+    free(node);
+}
 
 //차라리 한쪽으로 계속 회전하면서 삭제를 하면 될 거 같긴 한데
 //재귀가 더 쉬울 거 같음
 void delete_rbtree(rbtree *t) {
-    //delete_rbtree_nodes(t->root);
+    delete_rbtree_nodes(t->root);
     free(t);
 }
 
