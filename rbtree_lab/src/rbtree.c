@@ -9,7 +9,6 @@ int insert_case3(rbtree* t, node_t* node);
 
 rbtree *new_rbtree(void) {
     rbtree *p = (rbtree *)calloc(1, sizeof(rbtree));
-    // TODO: initialize struct if needed
     return p;
 }
 void delete_rbtree_nodes(node_t* node)
@@ -31,7 +30,6 @@ void delete_rbtree(rbtree *t) {
 node_t *rbtree_insert(rbtree *t, const key_t key) {
     if (t->root == NULL)
     {
-        printf("skrrr\n");
         node_t* n = (node_t*)malloc(sizeof(node_t));
         t->root = n;
         n->color = RBTREE_BLACK;
@@ -119,9 +117,84 @@ node_t *rbtree_max(const rbtree *t) {
     }
     return cur;
 }
-
+//삭제는 우선 노드를 삭제하고,
+//왼쪽 자식을 루트로 올리면 될듯함.
+//만약 왼쪽 자식이 오른쪽 자식을 가지고 있다면,
+//새로운 오른쪽 자식의 왼쪽으로 쭉 땡기면 될듯함.
+//그리고 새로운 루트가 전 루트의 왼쪽 자식인지 오른쪽 자식인지 몰라서 이건 if문으로 분기 해야 할듯?
 int rbtree_erase(rbtree *t, node_t *p) {
-    // TODO: implement erase
+    //새로 연결할 오른쪽 자식, 부모, 왼쪽으로 노드를 옮기기때문에 없어질 오른쪽 자식은 temp로 저장.
+    
+    if (p->left != NULL)
+    {
+        node_t* temp = p->left->right;
+        node_t* newP = p->parent;
+        node_t* newR = p->right;
+        node_t* cur = p->left;
+        //왼쪽 자식을 위로 올려주는 작업
+        cur->right = newR;
+        cur->parent = newP;
+        cur->right->parent = cur;
+        
+        
+        if (newP != NULL)
+        {
+            if (newP->left == p)
+                newP->left = cur;
+            else
+                newP->right = cur;
+        }
+        //원래 있던 오른쪽 자식을 새로운 오른쪽 자식의 가장 왼쪽 노드로 바꿔주는 코드
+        cur = cur->right;
+        while (cur->left != NULL)
+        {
+            cur = cur->left;
+        }
+        cur->left = temp;
+        temp->parent = cur;
+    }
+    else if (p->right != NULL)
+    {
+        node_t* temp = p->right->left;
+        node_t* newP = p->parent;
+        node_t* newL = p->left;
+        node_t* cur = p->left;
+        //왼쪽 자식을 위로 올려주는 작업
+        cur->left = newL;
+        cur->parent = newP;
+        cur->left->parent = cur;
+        
+        if (newP != NULL)
+        {
+            if (newP->left == p)
+                newP->left = cur;
+            else
+                newP->right = cur;
+        }
+        //원래 있던 오른쪽 자식을 새로운 오른쪽 자식의 가장 왼쪽 노드로 바꿔주는 코드
+        cur = cur->left;
+        while (cur->right != NULL)
+        {
+            cur = cur->right;
+        }
+        cur->right = temp;
+        temp->parent = cur;
+    }
+    else
+    {
+        if (p->parent != NULL)
+        {
+            if (p->parent->left == p)
+                p->parent->left = NULL;
+            else
+                p->parent->right = NULL;
+        }
+    }
+    //메모리 해제
+    if (t->root == p)
+        t->root = NULL;
+    free(p);
+    //todo : case 찾아서 whlie문 돌려서 어떻게든 하면 될듯?
     return 0;
 }
 void rbtree_into_array(node_t* node, key_t* arr, size_t n, int* idx)
@@ -148,6 +221,10 @@ int rbtree_to_array(const rbtree *t, key_t *arr, const size_t n)
 
 int insert_case1(rbtree* t, node_t* node)
 {
+    if (node->parent == NULL)
+        return 0;
+    if (node->parent->parent == NULL)
+        return 0;
     //부모 노드
     node_t* p = node->parent;
     //삼촌 노드
@@ -180,6 +257,10 @@ int insert_case1(rbtree* t, node_t* node)
 }
 int insert_case2(rbtree* t, node_t* node)
 {
+    if (node->parent == NULL)
+        return 0;
+    if (node->parent->parent == NULL)
+        return 0;
     node_t* gp = node->parent->parent;
 
     //왼쪽으로 회전.
@@ -231,6 +312,10 @@ int insert_case2(rbtree* t, node_t* node)
 }
 int insert_case3(rbtree* t, node_t* node)
 {
+    if (node->parent == NULL)
+        return 0;
+    if (node->parent->parent == NULL)
+        return 0;
     node_t* gp = node->parent->parent;
     node = node->parent;
     if (gp->left->left == node)
