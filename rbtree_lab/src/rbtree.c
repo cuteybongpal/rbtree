@@ -142,7 +142,7 @@ void rbtree_into_array(node_t* node, key_t* arr, size_t n, int* idx)
 //순서대로 배열에 담던가 해야하는데 재귁가 더 편해서 재귀로 하는게 나을듯 함.
 int rbtree_to_array(const rbtree *t, key_t *arr, const size_t n)
 {
-
+    rbtree_into_array(t->root, arr, n, 0);
     return 0;
 }
 
