@@ -31,6 +31,7 @@ void delete_rbtree(rbtree *t) {
 node_t *rbtree_insert(rbtree *t, const key_t key) {
     if (t->root == NULL)
     {
+        printf("skrrr\n");
         node_t* n = (node_t*)malloc(sizeof(node_t));
         t->root = n;
         n->color = RBTREE_BLACK;
@@ -123,7 +124,20 @@ int rbtree_erase(rbtree *t, node_t *p) {
     // TODO: implement erase
     return 0;
 }
-
+void rbtree_into_array(node_t* node, key_t* arr, size_t n, int* idx)
+{
+    if (node == NULL)
+        return;
+    if (*idx >= n)
+        return;
+    rbtree_into_array(node->left, arr, n, idx);
+    if (*idx >= n)
+        return;
+    arr[*idx] = node->key;
+    *idx = *idx + 1;
+    rbtree_into_array(node->right, arr, n, idx);
+    
+}
 //이것 또한 재귀로 풀어야 할듯? 아니면 아예 회전을 계속 시켜서 가장 편향된 트리로 만든 후,
 //순서대로 배열에 담던가 해야하는데 재귁가 더 편해서 재귀로 하는게 나을듯 함.
 int rbtree_to_array(const rbtree *t, key_t *arr, const size_t n)
