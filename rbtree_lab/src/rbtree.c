@@ -35,9 +35,12 @@ void check_insert_case(rbtree* tree, node_t* node)
 
     if (insert_case1(tree, node))
         return;
-    if (insert_case3(tree, node) == 0)
+    if (!insert_case3(tree, node))
+    {
         insert_case2(tree, node);
-    
+        insert_case3(tree, node);
+    }
+
 }
 node_t *rbtree_insert(rbtree *t, const key_t key) {
     if (t->root == NULL)
@@ -78,7 +81,9 @@ node_t *rbtree_insert(rbtree *t, const key_t key) {
         }
     }
     
+    printTree(t->root);
     check_insert_case(t, t->root);
+    printf("\n");
     printTree(t->root);
     return t->root;
 }
@@ -274,7 +279,7 @@ int insert_case2(rbtree* t, node_t* node)
         return 0;
     if (node->parent->left != NULL && node->parent->right != NULL)
         return 0;
-
+    
     //왼쪽으로 회전.
     if (gp->left != NULL && gp->left->right == node)
     {
@@ -285,11 +290,12 @@ int insert_case2(rbtree* t, node_t* node)
         node->parent = newP;
         node->left = newL;
         newL->parent = node;
-
+        newP->left = node;
+        
         newL->right = temp;
         if (temp != NULL)
             temp->parent = newL;
-
+        
         return 1;
     }
 
@@ -304,7 +310,7 @@ int insert_case2(rbtree* t, node_t* node)
         node->parent = newP;
         node->right = newR;
         newR->parent = node;
-
+        newP->right = node;
         newR->left = temp;
         if (temp != NULL)
             temp->parent = newR;
@@ -324,7 +330,7 @@ int insert_case3(rbtree* t, node_t* node)
 
     if (gp->left != NULL && gp->right != NULL)
         return 0;
-    if (node->parent->left != NULL && node->parent->right != NULL)
+    if (p->left != NULL && p->right != NULL)
         return 0;
     //todo :  왼쪽 회전과 오른쪽 회전 구현하기
     //우선 p랑 gp의 색깔을 서로 바꿔야함.
@@ -343,9 +349,15 @@ int insert_case3(rbtree* t, node_t* node)
         gp->parent = p;
         //temp를 회전 당한 얘의 left로 붙여줌
         gp->left = temp;
-        temp->parent = gp;
+        if (temp != NULL)
+            temp->parent = gp;
         if (newP == NULL)
             t->root = p;
+        else
+            if (newP->left == gp)
+                newP->left = p;
+            else
+                newP->right = p;
         return 1;
     }
     //왼쪽 회전
@@ -360,9 +372,15 @@ int insert_case3(rbtree* t, node_t* node)
         gp->parent = p;
 
         gp->right = temp;
-        temp->parent = gp;
+        if (temp != NULL)
+            temp->parent = gp;
         if (newP == NULL)
             t->root = p;
+        else
+            if (newP->left == gp)
+                newP->left = p;
+            else
+                newP->right = p;
         return 1;
     }
     return 0;
@@ -372,10 +390,10 @@ void printTree(node_t* node)
 {
     if (node == NULL)
     {
-        printf("NULL\n");
+        printf("print NULL\n");
         return;
     }
-    printf("%d \n", node->key);
+    printf("print %d \n", node->key);
     printTree(node->left);
     printTree(node->right);
 }
