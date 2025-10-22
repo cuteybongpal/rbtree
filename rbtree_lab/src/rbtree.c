@@ -26,22 +26,7 @@ void delete_rbtree(rbtree *t) {
     delete_rbtree_nodes(t->root);
     free(t);
 }
-void check_insert_case(rbtree* tree, node_t* node)
-{
-    if (node == NULL)
-        return;
-    check_insert_case(tree, node->left);
-    check_insert_case(tree, node->right);
 
-    if (insert_case1(tree, node))
-        return;
-    if (!insert_case3(tree, node))
-    {
-        insert_case2(tree, node);
-        insert_case3(tree, node);
-    }
-
-}
 node_t *rbtree_insert(rbtree *t, const key_t key) {
     if (t->root == NULL)
     {
@@ -81,9 +66,22 @@ node_t *rbtree_insert(rbtree *t, const key_t key) {
         }
     }
     
-    printTree(t->root);
-    check_insert_case(t, t->root);
-    printf("\n");
+    while (node->parent != NULL && node->parent->color == RBTREE_RED) {
+        if (insert_case1(t, node))
+        {
+            node = node->parent->parent;
+            continue;
+        }
+        node_t* p = node->parent;
+        if (insert_case2(t, node))
+        {
+            node = p;
+            p = node->parent;
+        }
+        if (insert_case3(t, node))
+            break;
+    }
+    
     printTree(t->root);
     return t->root;
 }
@@ -262,7 +260,7 @@ int insert_case1(rbtree* t, node_t* node)
     {
         p->color = RBTREE_BLACK;
         u->color = RBTREE_BLACK;
-        p->parent = RBTREE_RED;
+        p->parent->color = RBTREE_RED;
     }
     //루트를 black으로 만듦. 조부모가 루트일 수도 있기 때문임.
     t->root->color = RBTREE_BLACK;
@@ -275,11 +273,16 @@ int insert_case2(rbtree* t, node_t* node)
     if (node->parent->parent == NULL)
         return 0;
     node_t* gp = node->parent->parent;
-    if (gp->left != NULL && gp->right != NULL)
-        return 0;
-    if (node->parent->left != NULL && node->parent->right != NULL)
-        return 0;
-    
+    if (gp->left == node->parent)
+    {
+        if (gp->right != NULL && gp->right->color == RBTREE_RED)
+            return 0;
+    }
+    else
+    {
+        if (gp->left != NULL && gp->left->color == RBTREE_RED)
+            return 0;
+    }
     //왼쪽으로 회전.
     if (gp->left != NULL && gp->left->right == node)
     {
@@ -309,6 +312,7 @@ int insert_case2(rbtree* t, node_t* node)
 
         node->parent = newP;
         node->right = newR;
+
         newR->parent = node;
         newP->right = node;
         newR->left = temp;
@@ -327,28 +331,36 @@ int insert_case3(rbtree* t, node_t* node)
         return 0;
     node_t* p = node->parent;
     node_t* gp = node->parent->parent;
-
-    if (gp->left != NULL && gp->right != NULL)
-        return 0;
-    if (p->left != NULL && p->right != NULL)
-        return 0;
+    //삼촌 노드가 빨강일때 return함
+    if (gp->left == p)
+    {
+        if (gp->right != NULL && gp->right->color == RBTREE_RED)
+            return 0;
+    }
+    else
+    {
+        if (gp->left != NULL && gp->left->color == RBTREE_RED)
+            return 0;
+    }
     //todo :  왼쪽 회전과 오른쪽 회전 구현하기
-    //우선 p랑 gp의 색깔을 서로 바꿔야함.
-    color_t color_temp = p->color;
-    p->color = gp->color;
-    gp->color = color_temp;
+    
     //오른쪽 회전
     if (gp->left != NULL && gp->left->left == node)
     {
+        //우선 p랑 gp의 색깔을 서로 바꿔야함.
+        color_t color_temp = p->color;
+        p->color = gp->color;
+        gp->color = color_temp;
+
         node_t* newR = gp;
         node_t* newP = gp->parent;
         node_t* temp = p->right;
         //회전
         p->parent = newP;
         p->right = newR;
-        gp->parent = p;
+        newR->parent = p;
         //temp를 회전 당한 얘의 left로 붙여줌
-        gp->left = temp;
+        newR->left = temp;
         if (temp != NULL)
             temp->parent = gp;
         if (newP == NULL)
@@ -363,21 +375,25 @@ int insert_case3(rbtree* t, node_t* node)
     //왼쪽 회전
     else if (gp->right != NULL && gp->right->right == node)
     {
+        //우선 p랑 gp의 색깔을 서로 바꿔야함.
+        color_t color_temp = p->color;
+        p->color = gp->color;
+        gp->color = color_temp;
         node_t* newL = gp;
         node_t* newP = gp->parent;
         node_t* temp = p->left;
 
         p->parent = newP;
         p->left = newL;
-        gp->parent = p;
+        newL->parent = p;
 
-        gp->right = temp;
+        newL ->right = temp;
         if (temp != NULL)
             temp->parent = gp;
         if (newP == NULL)
             t->root = p;
         else
-            if (newP->left == gp)
+            if (p->parent->left == gp)
                 newP->left = p;
             else
                 newP->right = p;
@@ -393,7 +409,10 @@ void printTree(node_t* node)
         printf("print NULL\n");
         return;
     }
-    printf("print %d \n", node->key);
+    if (node->color == RBTREE_BLACK)
+        printf("print %d Black\n", node->key);
+    else
+        printf("print %d Red\n", node->key);
     printTree(node->left);
     printTree(node->right);
 }
