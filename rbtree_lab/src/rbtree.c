@@ -65,7 +65,8 @@ node_t *rbtree_insert(rbtree *t, const key_t key) {
             cur = cur->right;
         }
     }
-    
+    //삽입한 노드부터  rb트리의 규칙을 만족하지 못한 노드를 수정함.
+    //케이스3을 만족해, 회전을 하게 되면 무조건 규칙에 맞게 조정 되기 때문에, 바로 break를 걸어줌.
     while (node->parent != NULL && node->parent->color == RBTREE_RED) {
         if (insert_case1(t, node))
         {
@@ -119,89 +120,95 @@ node_t *rbtree_max(const rbtree *t) {
     }
     return cur;
 }
-node_t* rbtree_node_erase(node_t** root, key_t key)
-{
-    if (*root == NULL)
-        return NULL;
-    if ((*root)->key > key)
-        (*root)->left = rbtree_node_erase(&((*root)->left), key);
-    else if ((*root)->key < key)
-        (*root)->right = rbtree_node_erase(&((*root)->right), key);
-    else
+//다시 봤는데 그냥 후계자를 삭제할 노드로 올려야 하더라
+//재귀로 삭제 하려고 했는데 규칙에 위반하지 않는지 확인하려면 재귀가 아니라,
+//while문으로 검사를 해야함.
+int rbtree_erase(rbtree *t, node_t *p) {
+    color_t c = p->color;
+    if (p->left == NULL && p->right)
     {
-        //case1 : 자식이 없을때
-        if ((*root)->left == NULL && (*root)->right == NULL)
+        node_t* parent =p->parent;
+        if (p->parent->left == p)
+            p->parent->left = NULL;
+        else
+            p->parent->right = NULL;
+        free(p);
+    }
+    else if (p->left == NULL && p->right != NULL)
+    {
+        node_t* newP = p->parent;
+        node_t* newR = p->right;
+        newR->parent = newP;
+        if (t->root != p)
         {
-            free(*root);
-            *root = NULL;
-            return NULL;
+            if (newP->left == p)
+                newP->left = newR;
+            else
+                newP->right = newR;
         }
-        //case2 : 자식이 한쪽에만 있을 때
-        else if ((*root)->left == NULL && (*root)->right != NULL)
-        {
-            node_t* right = (*root)->right;
-            right->parent = (*root)->parent;
-            free(*root);
-            *root = NULL;
-            return right;
-        }
-        else if ((*root)->left != NULL && (*root)->right == NULL)
-        {
-            node_t* left = (*root)->left;
-            left->parent = (*root)->parent;
-            free(*root);
-            *root = NULL;
-            return left;
-        }
-        //case3 : 자식이 두개가 있을 때
         else
         {
-            // 후계자
-            node_t* successor = (*root)->right;
-            while (successor->left != NULL)
-            {
-                successor = successor->left;
-            }
-            if (successor != (*root)->right)
-            {
-                successor->parent->left = successor->right;
-                if (successor->right != NULL)
-                    successor->right->parent = successor->parent;
-
-            }
-            successor->parent = (*root)->parent;
-            if ((*root)->parent != NULL)
-            {
-                if ((*root)->parent->left == (*root))
-                {
-                    (*root)->parent->left = successor;
-                }
-                else
-                {
-                    (*root)->parent->right = successor;
-                }
-            }
-            successor->left = (*root)->left;
-            successor->left->parent = successor;
-            if ((*root)->right != successor)
-                successor->right = (*root)->right;
-            if (successor->right != NULL)
-                successor->right->parent = successor;
-            free(*root);
-            *root = NULL;
-            return successor;
+            t->root = p->right;
         }
+        free(p);
     }
-    return *root;
-}
-//삭제는 우선 노드를 삭제하고,
-//왼쪽 자식을 루트로 올리면 될듯함.
-//만약 왼쪽 자식이 오른쪽 자식을 가지고 있다면,
-//새로운 오른쪽 자식의 왼쪽으로 쭉 땡기면 될듯함.
-//그리고 새로운 루트가 전 루트의 왼쪽 자식인지 오른쪽 자식인지 몰라서 이건 if문으로 분기 해야 할듯?
-int rbtree_erase(rbtree *t, node_t *p) {
-    //일단 재귀 함수 만들기
-    rbtree_node_erase(&(t->root), p->key);
+    else if (p->left != NULL && p->right == NULL)
+    {
+        node_t* newP = p->parent;
+        node_t* newL = p->left;
+        newL->parent = newP;
+        if (newP->left == p)
+            newP->left = newL;
+        else
+            newP->right = newL;
+        free(p);
+    }
+    else
+    {
+        node_t* successor = p->right;
+        while (successor->left != NULL)
+        {
+            successor = successor->left;
+        }
+        //후계자의 부모와, 오른쪽 자식, 왼쪽 자식 연결 시켜주기
+        node_t* newL = p->left;
+        node_t* newR = p->right;
+        node_t* newP = p->parent;
+        color_t color = p->color;
+
+        
+        //후계자가 오른쪽 자식일때, 왼쪽 자식만 연결해주면 됨.
+        if (successor == newR)
+        {
+            successor->parent = newP;
+            if (newP->left == p)
+                newP->left = successor;
+            else
+                newP->right = successor; 
+            successor->left = newL;
+            newL->parent = successor;
+        }
+        else
+        {
+            successor->parent->left = NULL;
+            successor->parent = newP;
+            if (newP->left == p)
+                newP->left = successor;
+            else
+                newP->right = successor; 
+            successor->left = newL;
+            successor->right = newR;
+
+            newL->parent = successor;
+             newR->parent = successor;
+        }
+        c = successor->color;
+        successor->color = color;
+        free(p);
+    }
+    //삭제되는 색깔이 빨강일 경우, 아무런 어떠한 속정도 위반하지 않기 때문에 바로 리턴해줌.
+    if (c == RBTREE_RED)
+        return 0; 
     return 0;
 }
 void rbtree_into_array(node_t* node, key_t* arr, size_t n, size_t* idx)
@@ -402,6 +409,25 @@ int insert_case3(rbtree* t, node_t* node)
     return 0;
 }
 
+int del_case1()
+{
+
+}
+
+int del_case2()
+{
+    
+}
+
+int del_case3()
+{
+    
+}
+
+int del_case4()
+{
+    
+}
 void printTree(node_t* node)
 {
     if (node == NULL)
@@ -415,4 +441,55 @@ void printTree(node_t* node)
         printf("print %d Red\n", node->key);
     printTree(node->left);
     printTree(node->right);
+}
+//회전의 기준이 되는 노드 루트 노드임
+void rotateLeft(rbtree* t, node_t* node)
+{
+    node_t* replaceNode = node->right;
+    node_t* newP = node->parent;
+    node_t* newL = node;
+    node_t* temp = node->right->left;
+
+    if (newP == NULL)
+        t->root = replaceNode;
+    else
+    {
+        if (newP->left == node)
+            newP->left = replaceNode;
+        else
+            newP->right = replaceNode;
+    }
+    
+    replaceNode->left = newL;
+    newL->parent = replaceNode;
+    newL->right = temp;
+
+    if (temp != NULL)
+        temp->parent = newL;
+
+
+}
+
+void rotateRight(rbtree* t, node_t* node)
+{
+    node_t* replaceNode = node->right;
+    node_t* newP = node->parent;
+    node_t* newR = node;
+    node_t* temp = node->right->left;
+
+    if (newP == NULL)
+        t->root = replaceNode;
+    else
+    {
+        if (newP->left == node)
+            newP->left = replaceNode;
+        else
+            newP->right = replaceNode;
+    }
+    replaceNode->right = newR;
+    newR->parent = replaceNode;
+    newR->left = temp;
+
+    if (temp != NULL)
+        temp->parent = newR;
 }
